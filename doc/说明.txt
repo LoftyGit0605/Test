@@ -1,0 +1,75 @@
+GRBL四：GRBL框架解析
+
+GRBL0.8版本中有个doc文件夹，下面是关于GRBL大致的框架介绍
+
+1.commands.txt介绍GRBL命令
+
+2.pinmapping.txt介绍GRBL引脚映射
+
+3.resources.txt介绍GRBL用到资源
+
+4.structure.txt介绍GRBL框架
+
+4.1英文如下
+
+The general structure of Grbl
+ =============================
+ 4.1.1The main processing stack:
+
+
+
+
+ 1.'protocol'        : Accepts command lines from the serial port and passes them to 'gcode' for execution.
+                     Provides status responses for each command. Also manages run-time commands set by
+                     the serial interrupt.
+
+                    接收串口命令传递给gcode执行，给命令提供应答，通过串口中断管理程序命令
+                  
+2.'gcode'           : Recieves gcode from 'protocol', parses it according to the current state
+                     of the parser and issues commands via '..._control' modules
+                     从1接收G代码，解析G代码
+3.'spindle_control' : Commands for controlling the spindle.
+                                主轴控制，雕刻机的主轴带刀的轴，与XYZ无关，M3,4,5有关于主轴正反转停止命令
+4.'motion_control'  : Accepts motion commands from 'gcode' and passes them to the 'planner'. This module
+                     represents the public interface of the planner/stepper duo.
+                       从2接收运动命令将其传递给5，相当于一个发出命令的高层接口
+
+5.'planner'         : Receives linear motion commands from 'motion_control' and adds them to the plan of 
+                     prepared motions. It takes care of continuously optimizing the acceleration profile
+                     as motions are added.
+                     从4接收线性运动的命令，并将其添加到准备运动计划中(计算的数据写入唤醒缓冲区)
+
+                    随着运动不断被添加负责优化计算加速度分布图
+
+6.'stepper'         : Executes the motions by stepping the steppers according to the plan.
+                           执行动作，用两个定时器来控制三个轴完成相应的动作
+
+4.1.2Supporting files:
+
+
+ 'config.h'        : Compile time user settings
+                         一些全局变量的宏定义，例如MINIMUM_STEPS_PER_MINUTE最低每分钟跳动多少下，也就是最低 
+
+                        频率就在这里声明的
+
+'settings'        : Maintains the run time settings record in eeprom and makes it available
+                     to all modules.
+                     全局中主要的参数设置，$$命令打印出来的参数都是这里设置的
+
+                    上电读取EEPROM的值，如果读取失败调用default值，都在这里
+
+'eeprom'          : A library from Atmel that provides methods for reading and writing the eeprom with 
+                     a small addition from us that read and write binary streams with check sums used 
+                     to verify validity of the settings record.
+                     存放参数的作用，有关于EPROM的读写函数
+'nuts_bolts.h'    : A collection of global variable definitions, useful constants, and macros used everywhere
+                       一些全局变量的定义
+
+'serial'          : Low level serial communications and picks off run-time commands real-time for asynchronous 
+                     control.
+                     串口控制台
+
+'print'           : Functions to print strings of different formats (using serial)
+
+
+                   打印不同格式的字符串函数在这里定义的
